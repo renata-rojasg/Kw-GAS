@@ -1,0 +1,157 @@
+---
+title: "Percentage of useful volume (UV) of water reservoirs in the Southeast/Midwest subsystem of the Brazilian hydroelectric plant"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    theme: cerulean
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(readr)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(stringr)
+load("app_reservoirs-FORECAST1step.RData")
+load("app_reservoirs.RData")
+nome<-c("A. Vermelha", 
+                                 "Batalha", 
+                                 "B. Bonita",
+                                 "Capivara", 
+                                 "Chavantes", 
+                                 "Emborcação", 
+                                 "Itumbiara", 
+                                 "Jurumirim", 
+                                 "Marimbondo", 
+                                 "São Simão",
+                                 "Três Marias")
+nome2<- c("A. Vermelha", "Batalha", "B. Bonita", "billings_reservatorio","Capivara", 
+          "Chavantes","Emborcação","furnas_reservatorio","isolteira_reservatorio",
+          "Itumbiara","Jurumirim", "Marimbondo", "mmoraes_reservatorio","novaponte_reservatorio",
+          "paraibuna_reservatorio", "São Simão", "serradamesa_reservatorio",  "serradofacao_reservatorio",
+          "tresirmaos_reservatorio" ,"Três Marias")
+colnames(southeast_reservoir)<-nome2
+```
+
+Plots
+=====================================    
+Inputs {.sidebar}
+---
+```{r}
+inputPanel(
+selectInput("Resevoir", label = "Select one resevoir to visualize", choices = sort(nome), selected = "Itumbiara")
+)
+
+```
+
+Column {}
+-----------------------------------------------------------------------
+
+### Observed UV and GAS fitted values
+
+```{r}
+renderPlot({
+  j<-which(nome == input$Resevoir)
+  y<-na.omit(southeast_reservoir[,input$Resevoir])
+  if(j==2){
+    y<-ts(y[1:(length(y)-6)],
+          frequency = 12,start = c(2013,1))
+  }else{
+    y<-ts(y[1:(length(y)-6)],
+        frequency = 12,start = c(2011,1))
+  }
+  plot(y,main="",ylim=c(min(y),max(y)+0.15),ylab="UV")
+    lines(final[[j]]$fitted, col=2,lty=2,lwd=2)
+    lines(final_beta[[j]]$fitted, col=4,lty=3,lwd=1.5)
+    legend("topright", 
+           c("Original","Kw-GAS","Beta-GAS"),
+           col = c(1,2,4),
+           lty= c(1,2,3),
+           lwd = c(1,2,1.5), bty="n", cex = 1)
+})
+
+
+ 
+
+
+```
+
+### Out-of-sample Kw-GAS forecasts 1-step ahead, updated by actual observations
+
+```{r}
+renderPlot({
+  j<-which(nome == input$Resevoir)
+  y_prev<-get(paste0("y_prev",j))
+  plot(y_prev,ylab="UV",ylim=c(min(y_prev,out_forecast[,1,j]),max(y_prev,out_forecast[,1,j])))
+  lines(out_forecast[,1,j],col=2,lty=2,lwd=2)
+  legend("topright", 
+           c("Kw-GAS"),
+           col = c(2),
+           lty= c(2),
+           lwd = c(2), bty="n", cex = 1)
+})
+```
+
+Column {}
+-----------------------------------------------------------------------
+### Monthplot for the UV time series
+
+```{r}
+renderPlot({
+  j<-which(nome == input$Resevoir)
+  y<-na.omit(southeast_reservoir[,input$Resevoir])
+  if(j==2){
+    y<-ts(y[1:(length(y)-6)],
+          frequency = 12,start = c(2013,1))
+  }else{
+    y<-ts(y[1:(length(y)-6)],
+        frequency = 12,start = c(2011,1))
+  }
+  monthplot(y,main="",ylab="UV")
+})
+```
+
+### Autocorrelation function (ACF) of the Kw-GAS residual
+
+```{r}
+renderPlot({
+  j<-which(nome == input$Resevoir)
+  acf(final[[j]]$residuals,main="")
+})
+
+```
+
+About
+=====================================
+**Goals**
+
+This dashboard was developed to support the paper entitled "The Kumaraswamy generalized autoregressive model for the quantiles of double-bounded hydro-environmental time series'', submitted to the Jan Tinbergen Competition for Young Statisticians 2023. It allows for exploring a qualitative analysis that provides graphical representations of the useful volume (UV) of eleven water reservoirs from Brazilian hydroelectric power plants.
+
+**The data**
+
+The analyzed reservoirs are part of the Southeast/Midwest subsystem of the National Interconnected System (SIN) and contribute to the production and transmission of electric energy in Brazil. The data sets range from January 2011 to December 2019. The exception is the Batalha reservoir, which starting period is January 2013. The data are obtained from the Operador Nacional do Sistema Elétrico, available at http://www.ons.org.br/, and was previously reported by Sagrillo et al. (2021). 
+
+**Source files**
+The current application was implemented in the R Project for Statistical Computing, and the codes are available at https://github.com/renata-rojasg/Kw-GAS.
+
+**Author**
+
+***Name:*** Renata Rojas Guerra.
+
+***Filiation:*** Universidade Federal de Santa Maria, Departamento de Estatı́stica. Avenida Roraima nº 1000. Santa Maria, Brasil. 
+
+***Email:*** renata.r.guerra@ufsm.br
+
+***Orcid ID:*** 0000-0002-6476-8276, link https://orcid.org/0000-0002-6476-8276
+
+***Scopus Author ID:*** 57204123467, link https://www.scopus.com/authid/detail.uri?authorId=57204123467
+
+***ResearcherID (Publons):*** AAC-8402-2021, link https://publons.com/researcher/4671420/renata-guerra/
+
+**Reference**
+
+Sagrillo M, Guerra RR, Bayer FM. 2021. Modified Kumaraswamy distributions for double bounded
+hydro-environmental data. Journal of Hidrology.
